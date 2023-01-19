@@ -216,18 +216,26 @@ namespace StringToExpression.LanguageDefinitions
         /// <returns></returns>
         protected virtual IEnumerable<GrammerDefinition> PropertyDefinitions()
         {
-            return new[]
+        return new OperandDefinition[1]
+        {
+            new OperandDefinition("PROPERTY_PATH", "(?<![0-9])([A-Za-z_][A-Za-z0-9_]*\\.?)+", (string value, ParameterExpression[] parameters) =>
             {
-                 new OperandDefinition(
-                    name:"PROPERTY_PATH",
-                    regex: @"(?<![0-9])([A-Za-z_][A-Za-z0-9_]*\.?)+",
-                    expressionBuilder: (value, parameters) => {
-                        return value.Split('.').Aggregate((Expression)parameters[0], (exp, prop)=>
-                        {
-                            return Expression.MakeMemberAccess(exp, TypeShim.GetProperty(exp.Type, prop));
-                        });
-                    }),
-            };
+                var arr = value.Split(new char[1] { '.' });
+                var root_parameter= parameters.Where(x=>x.Name==arr[0]).First();
+                var res =arr.Aggregate(null, (Expression exp, string prop) => {
+                    if(exp == null)
+                    {
+                        //object parameter root 
+                        return root_parameter;
+                    }
+                    else
+                    {
+                        return Expression.MakeMemberAccess(exp, TypeShim.GetProperty(exp.Type, prop));
+                    }
+                });
+                return res;
+            })
+        };
         }
 
         /// <summary>
